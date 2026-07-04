@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     """Allowed origins for Cross-Origin Resource Sharing."""
 
     # Directories
+    DATA_DIR: Path = Path("data")
+    """Directory for SQLite database and other runtime data."""
+
     REPORTS_DIR: Path = Path("reports")
     """Directory where generated reports are stored."""
 
