@@ -1,0 +1,22 @@
+{
+  "_description": "OSINT DD Dashboard - Configuration File",
+  "_instructions": "Fill in your API keys below and save this file. Remove the placeholder text and replace with your actual keys.",
+  "_how_to_get_keys": {
+    "opensanctions_api_key": "1. Go to https://www.opensanctions.org/api/ 2. Sign up for free 3. Copy your API key",
+    "courtlistener_token": "1. Go to https://www.courtlistener.com/ 2. Register for free 3. Go to profile page and generate API token"
+  },
+
+  "opensanctions_api_key": "",
+  "courtlistener_token": "",
+
+  "_module_toggles": "Set to false to disable specific screening modules",
+  "enable_jurisdiction": true,
+  "enable_static_sanctions": true,
+  "enable_adverse_media": true,
+  "enable_litigation": true,
+
+  "_advanced": "Advanced settings - change only if you know what you're doing",
+  "screening_timeout_seconds": 300,
+  "max_concurrent_jobs": 5,
+  "admin_password": "changeme"
+}
