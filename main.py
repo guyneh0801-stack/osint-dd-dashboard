@@ -10,6 +10,10 @@ Endpoints:
 * WebSocket under ``/ws/screening/{job_id}``
 * Static files from ``dist/`` (if present)
 * Health check at ``/api/health``
+
+Usage:
+    python main.py           # Development with auto-reload
+    uvicorn main:app         # Production with uvicorn directly
 """
 
 from __future__ import annotations
@@ -123,3 +127,25 @@ _dist_path = os.path.join(os.path.dirname(__file__), "dist")
 if os.path.isdir(_dist_path):
     app.mount("/", StaticFiles(directory=_dist_path, html=True), name="static")
     logger.info("Serving static files from %s", _dist_path)
+
+
+# ---------------------------------------------------------------------------
+# Entry point — start the server
+# ---------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    import uvicorn
+
+    host = os.environ.get("HOST", "0.0.0.0")
+    port = int(os.environ.get("PORT", "8000"))
+    reload = os.environ.get("RELOAD", "false").lower() in ("true", "1", "yes")
+
+    logger.info("Starting uvicorn — host=%s port=%d reload=%s", host, port, reload)
+
+    uvicorn.run(
+        "main:app",
+        host=host,
+        port=port,
+        reload=reload,
+        log_level="info",
+    )
