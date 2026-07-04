@@ -20,8 +20,15 @@ from __future__ import annotations
 
 import asyncio
 import os
+import sys
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
+
+# ---------------------------------------------------------------------------
+# Explicit startup print (visible even before logging is configured)
+# ---------------------------------------------------------------------------
+
+print("[OSINT DD] Starting up...", flush=True)
 
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
@@ -97,6 +104,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 # FastAPI application
 # ---------------------------------------------------------------------------
 
+print("[OSINT DD] Creating FastAPI app...", flush=True)
+
 app = FastAPI(
     title=settings.APP_NAME,
     version="1.0.0",
@@ -128,6 +137,8 @@ if os.path.isdir(_dist_path):
     app.mount("/", StaticFiles(directory=_dist_path, html=True), name="static")
     logger.info("Serving static files from %s", _dist_path)
 
+print("[OSINT DD] FastAPI app created successfully", flush=True)
+
 
 # ---------------------------------------------------------------------------
 # Entry point — start the server
@@ -140,12 +151,16 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", "8000"))
     reload = os.environ.get("RELOAD", "false").lower() in ("true", "1", "yes")
 
-    logger.info("Starting uvicorn — host=%s port=%d reload=%s", host, port, reload)
+    print(f"[OSINT DD] Starting uvicorn — host={host} port={port} reload={reload}", flush=True)
 
-    uvicorn.run(
-        "main:app",
-        host=host,
-        port=port,
-        reload=reload,
-        log_level="info",
-    )
+    try:
+        uvicorn.run(
+            app,  # Pass app object directly instead of string
+            host=host,
+            port=port,
+            reload=reload,
+            log_level="info",
+        )
+    except Exception as exc:
+        print(f"[OSINT DD] FAILED to start: {exc}", flush=True)
+        sys.exit(1)
