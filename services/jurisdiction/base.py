@@ -20,13 +20,90 @@ from __future__ import annotations
 import importlib
 import pkgutil
 from abc import ABC, abstractmethod
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Type
 
 from pydantic import BaseModel, Field
 
 
 # ---------------------------------------------------------------------------
-# Data models
+# Data models for source-based jurisdiction screening (used by sources.py)
+# ---------------------------------------------------------------------------
+
+class JurisdictionResult(BaseModel):
+    """Result from a single jurisdiction source check."""
+
+    jurisdiction_code: str = ""
+    jurisdiction_name: str = ""
+    status: str = "clear"  # "clear" | "flagged" | "error" | "timeout"
+    findings: List[Dict[str, Any]] = Field(default_factory=list)
+    checked_at: str = ""
+    source_url: Optional[str] = None
+
+
+class JurisdictionSource(ABC):
+    """Abstract base for jurisdiction-based sanctions sources.
+
+    Each concrete subclass represents one sanctions list from a
+    specific jurisdiction.  Used by :py:mod:`services.jurisdiction.sources`.
+    """
+
+    _CIRCUIT_BREAKER_LIMIT: int = 5
+
+    def __init__(self) -> None:
+        self._failure_count: int = 0
+
+    @property
+    @abstractmethod
+    def code(self) -> str:
+        """Short canonical code, e.g. ``"us_ofac"``, ``"un"``."""
+        ...
+
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """Human-readable name, e.g. ``"US OFAC SDN"``."""
+        ...
+
+    @property
+    def priority_tier(self) -> int:
+        """Lower = higher priority.  Override in subclasses if needed."""
+        return 3
+
+    def record_failure(self) -> None:
+        self._failure_count += 1
+
+    def record_success(self) -> None:
+        self._failure_count = 0
+
+    def is_available(self) -> bool:
+        return self._failure_count < self._CIRCUIT_BREAKER_LIMIT
+
+    @abstractmethod
+    async def query(
+        self, name_en: str, name_he: Optional[str]
+    ) -> JurisdictionResult:
+        """Run the jurisdiction check and return a :class:`JurisdictionResult`."""
+        ...
+
+    def _make_result(
+        self,
+        status: str,
+        findings: Optional[List[Dict[str, Any]]] = None,
+        source_url: Optional[str] = None,
+    ) -> JurisdictionResult:
+        return JurisdictionResult(
+            jurisdiction_code=self.code,
+            jurisdiction_name=self.name,
+            status=status,
+            findings=findings or [],
+            checked_at=datetime.now(timezone.utc).isoformat(),
+            source_url=source_url,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Data models for plugin-based jurisdiction screening (used by factory.py)
 # ---------------------------------------------------------------------------
 
 class JurisdictionMatch(BaseModel):
